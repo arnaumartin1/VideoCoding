@@ -2,6 +2,8 @@ import numpy as np
 import subprocess
 from PIL import Image
 from scipy.fftpack import dct, idct
+import os
+import unittest
 
 
 
@@ -75,7 +77,7 @@ class ColorTranslator:
 
     def BlackWhiteCompression(self, imagePath, outputPath):
 
-        consoleString = f"ffmpeg -y -i \"{imagePath}\" -vf format=gray -q:v 31 \"{outputPath}\" -loglevel error"
+        consoleString = f"ffmpeg -y -i \"{imagePath}\" -vf format=gray  -pix_fmt gray -q:v 31 \"{outputPath}\" -loglevel error"
         subprocess.run(consoleString, shell=True, check=True)
 
         print("\nBlack and white compression completed.")
@@ -118,6 +120,7 @@ class DCT:
     
     def Decode(self,dctData):
         idctData = idct(idct(dctData.T, norm='ortho').T, norm='ortho') # 2D IDCT
+        idctData = np.clip(idctData, 0, 255)
         
         # decoded image
         decodedImg = Image.fromarray(np.uint8(idctData))
@@ -128,16 +131,82 @@ class DCT:
 # Exercise 7
 
 # Exercise 8: Unit tests
-        
+
+class TestColorTranslator(unittest.TestCase):
+    def setUp(self):
+        self.translator = ColorTranslator()
+        # Path de la imatge GOAT
+        self.test_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
+        self.output_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT_test_output.jpg"
+        self.bw_output_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT_bw_test.jpg"
+
+    def tearDown(self):
+        # Neteja fitxers generats
+        for path in [self.output_path, self.bw_output_path]:
+            if os.path.exists(path):
+                os.remove(path)
+
+    # Exercise 2
+    def test_rgb_to_yuv_and_back(self):
+        R, G, B = 123, 45, 67
+        Y, U, V = self.translator.rgb_to_yuv(R, G, B)
+        R2, G2, B2 = self.translator.yuv_to_rgb(Y, U, V)
+        self.assertAlmostEqual(R, R2, delta=2)
+        self.assertAlmostEqual(G, G2, delta=2)
+        self.assertAlmostEqual(B, B2, delta=2)
+
+    # Exercise 3
+    def test_resize_images(self):
+        self.translator.ResizeImages(self.test_image_path, self.output_path, 50, 50)
+        self.assertTrue(os.path.exists(self.output_path))
+        img = Image.open(self.output_path)
+        self.assertEqual(img.size, (50, 50))
+
+    # Exercise 4
+    def test_serpentine(self):
+        byte_len = self.translator.Serpentine(self.test_image_path)
+        img = Image.open(self.test_image_path)
+        width, height = img.size
+        self.assertEqual(byte_len, width * height * 3)  
+
+    # Exercise 5a
+    def test_blackwhite_compression(self):
+        self.translator.BlackWhiteCompression(self.test_image_path, self.bw_output_path)
+        self.assertTrue(os.path.exists(self.bw_output_path))
+        img = Image.open(self.bw_output_path).convert("L")
+        self.assertEqual(img.mode, "L")
+
+    # Exercise 5b
+    def test_run_length_encoding(self):
+        data = bytes([255, 255, 255, 0, 0, 128, 128])
+        rle = self.translator.run_length_encoding(data)
+        self.assertEqual(rle, [(3, 255), (2, 0), (2, 128)])
+
+
+class TestDCT(unittest.TestCase):
+    # Fem un setup semblant per a l'altra classe creada
+    def setUp(self):
+        self.converter = DCT()
+        self.test_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
+        self.decoded_path = "/Users/arnaumartin/VideoCoding/seminar_1/decoded_image_test.jpg"
+
+    def tearDown(self):
+        if os.path.exists(self.decoded_path):
+            os.remove(self.decoded_path)
+
+    def test_encode_decode(self):
+        dct_data = self.converter.Encode(self.test_image_path)
+        idct_data = self.converter.Decode(dct_data)
+        self.assertTrue(np.all((idct_data >= 0) & (idct_data <= 255)))
+
 
 
 # Main execution
 
 
 if __name__ == "__main__":
-
-    translator = ColorTranslator()
-
+    unittest.main()
+    
     # # Eercise 1 Test
     # # Ask user for RGB input values
     # R_in = int(input("Enter Red component (0-255): "))
