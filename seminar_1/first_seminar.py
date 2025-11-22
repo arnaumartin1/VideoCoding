@@ -4,6 +4,8 @@ from PIL import Image
 from scipy.fftpack import dct, idct
 import os
 import unittest
+import pywt
+
 
 
 
@@ -37,14 +39,13 @@ class ColorTranslator:
         return (int(R), int(G), int(B))
     
     
-
     # Exercise 3
 
     def ResizeImages(self, imagePath, outputPath, targetWidth, targetHeight):
 
-        if targetWidth >= 0 or targetHeight >= 0: # Si son enters positius
+        if targetWidth >= 0 or targetHeight >= 0: # If they are positive integers
 
-            # Command per a consola de ffmpeg amb els paths i dimensions
+            # Command to be executed in the console to resize the image using ffmpeg
             consoleString = f"ffmpeg -y -i \"{imagePath}\" -vf scale={targetWidth}:{targetHeight} \"{outputPath}\" -loglevel error"
             subprocess.run(consoleString, shell=True, check=True) # Executa la comanda
         else:             
@@ -58,32 +59,33 @@ class ColorTranslator:
         data = np.array(image) 
         height, width, _ = data.shape
 
-        # Creem un array per guardar els píxels en ordre diagonal zig-zag
+        # Create an array to store pixels in zig-zag diagonal order
         serpentine = []
 
-        for d in range(width + height - 1):  # recorrem cada diagonal
+        for d in range(width + height - 1):  # iterate over each diagonal
             for y in range(max(0, d - width + 1), min(height, d + 1)):
                 x = d - y
-                if d % 2 == 0: # diagonal parell: de dalt a baix
+                if d % 2 == 0: # even diagonal: top to bottom
                     serpentine.append(data[y, x])
-                else: # diagonal imparell: de baix a dalt
+                else: # odd diagonal: bottom to top
                     serpentine.append(data[height - 1 - y, width - 1 - x])  
 
-        # Convertim a bytes
+        # Convert to bytes
         byte_data = np.array(serpentine, dtype=np.uint8).tobytes()
         return len(byte_data)
     
+
     # Exercise 5a
 
     def BlackWhiteCompression(self, imagePath, outputPath):
 
-        consoleString = f"ffmpeg -y -i \"{imagePath}\" -vf format=gray  -pix_fmt gray -q:v 31 \"{outputPath}\" -loglevel error"
+        consoleString = f"ffmpeg -y -i \"{imagePath}\" -vf format=gray  -pix_fmt gray -q:v 31 \"{outputPath}\" -loglevel error" # Command to compress in black and white and low quality
         subprocess.run(consoleString, shell=True, check=True)
 
         print("\nBlack and white compression completed.")
         print("The filter '-vf format=gray' converts the image to grayscale by removing color information.")
         print("The parameter '-q:v 31' sets the worst possible quality for the output.")
-        print("This leads to a smaller file size and a significant loss of detail.")
+        print("This leads to a smaller file size and a significant loss of detail.\n")
 
 
     # Exercise 5b
@@ -94,9 +96,9 @@ class ColorTranslator:
         encoded_bytes = []
 
         while i < len(bytes):
-            value = bytes[i]
+            value = bytes[i] # Current byte value
             count = 1
-            while i + count < len(bytes) and bytes[i] == bytes[i + count]:
+            while i + count < len(bytes) and bytes[i] == bytes[i + count]: # Count occurrences
                 count += 1
 
             encoded_bytes.append((count, value))
@@ -104,9 +106,8 @@ class ColorTranslator:
         return encoded_bytes
             
     
-# Exercise 6
+    # Exercise 6
     
-
 class DCT:
     def __init__(self):
         pass
@@ -118,30 +119,64 @@ class DCT:
         dctData = dct(dct(data.T, norm='ortho').T, norm='ortho') # 2D DCT
         return dctData
     
-    def Decode(self,dctData):
+    def Decode(self, dctData, save_path=None):
         idctData = idct(idct(dctData.T, norm='ortho').T, norm='ortho') # 2D IDCT
         idctData = np.clip(idctData, 0, 255)
         
-        # decoded image
+        # Decoded image
         decodedImg = Image.fromarray(np.uint8(idctData))
-        decodedImg.save("/Users/arnaumartin/VideoCoding/seminar_1/decoded_image.jpg") # Ens guardem la imatge decodificada
+        decodedImg.save("/Users/Eric/Downloads/VideoCoding/seminar_1/dct_decoded_image.jpg") # Save the decoded image
         return idctData
 
     
-# Exercise 7
+    # Exercise 7
 
-# Exercise 8: Unit tests
+class DWT:
+    def __init__(self, wavelet='haar', level=1):
+        # Choosing the wavelet type and decomposition level
+        self.wavelet = wavelet
+        self.level = level
+
+    def Encode(self, inputPath):
+        image = Image.open(inputPath).convert('RGB')  # Ensure image is in RGB mode
+        data = np.array(image)
+
+        # Separate channels
+        channels = [data[:, :, i] for i in range(3)]
+        encoded_coeffs = []
+        for channel in channels:
+            coeffs = pywt.wavedec2(channel, wavelet=self.wavelet, level=self.level) # 2D DWT
+            encoded_coeffs.append(coeffs)
+
+        return encoded_coeffs
+    
+    def Decode(self, coeffs, save_path=None):
+        decoded_channels = []
+        for channel_coeffs in coeffs:
+            reconstructed = pywt.waverec2(channel_coeffs, wavelet=self.wavelet) # 2D IDWT
+            reconstructed = np.clip(reconstructed, 0, 255) # Clipping values to valid range
+            decoded_channels.append(reconstructed)
+
+        idwtData = np.stack(decoded_channels, axis=-1)  # Reconstruct the image from channels
+        
+        # Decoded image
+        decodedImg = Image.fromarray(np.uint8(idwtData))
+        decodedImg.save("/Users/Eric/Downloads/VideoCoding/seminar_1/dwt_decoded_image.jpg") # Save the decoded image
+        return idwtData
+
+
+    # Exercise 8: Unit tests
 
 class TestColorTranslator(unittest.TestCase):
     def setUp(self):
         self.translator = ColorTranslator()
-        # Path de la imatge GOAT
-        self.test_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
-        self.output_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT_test_output.jpg"
-        self.bw_output_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT_bw_test.jpg"
+        
+        self.test_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+        self.output_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_test_output.jpg"
+        self.bw_output_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_bw_test.jpg"
 
     def tearDown(self):
-        # Neteja fitxers generats
+        # Clean up created files
         for path in [self.output_path, self.bw_output_path]:
             if os.path.exists(path):
                 os.remove(path)
@@ -184,119 +219,136 @@ class TestColorTranslator(unittest.TestCase):
 
 
 class TestDCT(unittest.TestCase):
-    # Fem un setup semblant per a l'altra classe creada
+    # We do a similar setup for the other created class in exercise 6
     def setUp(self):
         self.converter = DCT()
-        self.test_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
-        self.decoded_path = "/Users/arnaumartin/VideoCoding/seminar_1/decoded_image_test.jpg"
+        self.test_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+        self.decoded_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/decoded_image_test.jpg"
 
     def tearDown(self):
+        # Clean up created files
         if os.path.exists(self.decoded_path):
             os.remove(self.decoded_path)
 
     def test_encode_decode(self):
         dct_data = self.converter.Encode(self.test_image_path)
-        idct_data = self.converter.Decode(dct_data)
-        self.assertTrue(np.all((idct_data >= 0) & (idct_data <= 255)))
+        idct_data = self.converter.Decode(dct_data, save_path=self.decoded_path)
+        self.assertTrue(np.all((idct_data >= 0) & (idct_data <= 255))) # Ensure values are in valid range
+
+
+class TestDWT(unittest.TestCase):
+    # We do a similar setup for the other created class in exercise 7
+    def setUp(self):
+        self.converter = DWT(wavelet='haar', level=1)
+        self.test_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+        self.decoded_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/dwt_decoded_image_test.jpg"
+
+    def tearDown(self):
+        # Clean up created files
+        if os.path.exists(self.decoded_path):
+            os.remove(self.decoded_path)
+
+    def test_encode_decode(self):
+        dwt_data = self.converter.Encode(self.test_image_path)
+        idwt_data = self.converter.Decode(dwt_data, save_path=self.decoded_path)
+        self.assertTrue(np.all((idwt_data >= 0) & (idwt_data <= 255))) # Ensure values are in valid range
 
 
 
 # Main execution
 
-
 if __name__ == "__main__":
-    unittest.main()
     
-    # # Eercise 1 Test
-    # # Ask user for RGB input values
-    # R_in = int(input("Enter Red component (0-255): "))
-    # G_in = int(input("Enter Green component (0-255): "))
-    # B_in = int(input("Enter Blue component (0-255): "))
-    # Eercise 2 Test
+    translator = ColorTranslator()
+
+    # Exercise 2
     # Ask user for RGB input values
-    # R_in = int(input("Enter Red component (0-255): "))
-    # G_in = int(input("Enter Green component (0-255): "))
-    # B_in = int(input("Enter Blue component (0-255): "))
+    R_in = int(input("Enter Red component (0-255): "))
+    G_in = int(input("Enter Green component (0-255): "))
+    B_in = int(input("Enter Blue component (0-255): "))
     
-    # print(f"\nRGB to YUV")
-    # print(f"Input RGB: ({R_in}, {G_in}, {B_in})")
+    print(f"\nRGB to YUV")
+    print(f"Input RGB: ({R_in}, {G_in}, {B_in})")
 
-    # # Conversion
-    # Y, U, V = translator.rgb_to_yuv(R_in, G_in, B_in)
-    # print(f"Resulting YUV: ({Y}, {U}, {V})\n")
+    # Conversion
+    Y, U, V = translator.rgb_to_yuv(R_in, G_in, B_in)
+    print(f"Resulting YUV: ({Y}, {U}, {V})\n")
 
-    # # Inverse example:
-    # # Ask user for YUV input values
-    # Y_in = int(input("Enter Y component (0-255): "))
-    # U_in = int(input("Enter U component (0-255): "))
-    # V_in = int(input("Enter V component (0-255): "))
+    # Inverse example:
+    # Ask user for YUV input values
+    Y_in = int(input("Enter Y component (0-255): "))
+    U_in = int(input("Enter U component (0-255): "))
+    V_in = int(input("Enter V component (0-255): "))
 
-    # Y_in, U_in, V_in = Y, U, V
-    # print(f"\nYUV to RGB")
-    # print(f"Input YUV: ({Y_in}, {U_in}, {V_in})")
+    Y_in, U_in, V_in = Y, U, V
+    print(f"\nYUV to RGB")
+    print(f"Input YUV: ({Y_in}, {U_in}, {V_in})")
 
-    # # Inverse Conversion
-    # R_out, G_out, B_out = translator.yuv_to_rgb(Y_in, U_in, V_in)
-    # print(f"Resulting RGB: ({R_out}, {G_out}, {B_out})\n")
+    # Inverse Conversion
+    R_out, G_out, B_out = translator.yuv_to_rgb(Y_in, U_in, V_in)
+    print(f"Resulting RGB: ({R_out}, {G_out}, {B_out})\n")
 
-    # # Comparison:
-    # print(f"\nOriginal RGB: ({R_in}, {G_in}, {B_in})")
-    # print(f"Final RGB:    ({R_out}, {G_out}, {B_out})")
-
-
-    # Exercise 2 Test
-
-    # input_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
-    # output_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT_resized.jpg"
-    # target_width = int(input("Enter target width: "))
-    # target_height = int(input("Enter target height: "))
-    # translator.ResizeImages(input_image_path, output_image_path, target_width, target_height)
-
-    # Exercise 3 Test
-    # input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
-    # output_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_resized.jpg"
-    # target_width = int(input("Enter target width: "))
-    # target_height = int(input("Enter target height: "))
-    # translator.ResizeImages(input_image_path, output_image_path, target_width, target_height)
+    # Comparison:
+    print(f"\nOriginal RGB: ({R_in}, {G_in}, {B_in})")
+    print(f"Final RGB:    ({R_out}, {G_out}, {B_out})")
 
 
-    # Exercise 4 Test
-    # input_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
-    # serpentine_data = translator.Serpentine(input_image_path)
-    # print(f"Serpentine byte data length: {(serpentine_data)}")
+    # Exercise 3
+    input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+    output_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_resized.jpg"
+    target_width = int(input("Enter target width: "))
+    target_height = int(input("Enter target height: "))
+    translator.ResizeImages(input_image_path, output_image_path, target_width, target_height)
+    print(f"Resized image saved to: {output_image_path}")
 
 
-    # # Exercise 5a Test
-    # input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
-    # bw_output_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_bw_compressed.jpg"
-    # translator.BlackWhiteCompression(input_image_path, bw_output_image_path)
+    # Exercise 4
+    input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+    serpentine_data = translator.Serpentine(input_image_path)
+    print(f"Serpentine byte data length: {(serpentine_data)}")
 
 
-    # # Exercise 5b Test
-    # input_data = [255, 255, 255, 0, 0, 0, 0, 128, 128, 128, 128, 128, 255]
-    # print(f"Original Data ({len(input_data)} elements):")
-    # print(input_data)
+    # Exercise 5a
+    input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+    bw_output_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT_bw_compressed.jpg"
+    translator.BlackWhiteCompression(input_image_path, bw_output_image_path)
+    print(f"Black and white compressed image saved to: {bw_output_image_path}")
+
+
+    # Exercise 5b
+    input_data = [255, 255, 255, 0, 0, 0, 0, 128, 128, 128, 128, 128, 255]
+    print(f"\nOriginal Data ({len(input_data)} elements):")
+    print(input_data)
     
-    # # Codification
-    # rle_encoded = translator.run_length_encoding(input_data)
-    # print("\nCodification by RLE:")
-    # print(rle_encoded)
-
-    # # Exercise 6 Test
-
-    # input_image_path = "/Users/arnaumartin/VideoCoding/seminar_1/GOAT.jpg"
-
-    # converter = DCT()
-    # encoded = converter.Encode(input_image_path)
-    # decoded = converter.Decode(encoded)
-
-    # print("Original Data:\n", np.array(Image.open(input_image_path)))
-    # print("DCT Encoded:\n", encoded)
-    # print("Decoded Data:\n", decoded)
+    # Codification
+    rle_encoded = translator.run_length_encoding(input_data)
+    print("\nCodification by RLE:")
+    print(rle_encoded)
 
 
+    # Exercise 6
+    input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
+
+    converter = DCT()
+    encoded = converter.Encode(input_image_path)
+    decoded = converter.Decode(encoded)
+
+    print("\nOriginal Data:\n", np.array(Image.open(input_image_path)))
+    print("\nDCT Encoded:\n", encoded)
+    print("\nDecoded Data:\n", decoded)
 
 
-    
+    # Exercise 7
+    input_image_path = "/Users/Eric/Downloads/VideoCoding/seminar_1/GOAT.jpg"
 
-    
+    converter = DWT(wavelet='haar', level=1)
+    encoded = converter.Encode(input_image_path)
+    decoded = converter.Decode(encoded)
+
+    print("\nOriginal Data:\n", np.array(Image.open(input_image_path)))
+    print("\nDWT Encoded:\n", encoded)
+    print("\nDecoded Data:\n", decoded)
+
+
+    # Exercise 8 - Run unit tests
+    #unittest.main()
