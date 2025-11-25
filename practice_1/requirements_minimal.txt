@@ -1,0 +1,13 @@
+# Core FastAPI dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+
+# Image and video processing
+Pillow==12.0.0
+numpy==2.3.4
+scipy==1.16.2
+PyWavelets==1.9.0
+
+# FFmpeg Python wrapper (optional, for local processing)
+ffmpeg-python==0.2.0
