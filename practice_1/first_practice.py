@@ -363,5 +363,151 @@ async def video_yuv_histogram(file: UploadFile = File(...)):
     return FileResponse(output_path, media_type="video/mp4", filename=output_filename)
 
 
+# Exercise 1 of practice 2 Endpoint - Convert input video to 4 formats
+
+@app.post("/video/convert_video_4_formats/")
+async def convert_codecs(file: UploadFile = File(...)):
+
+    uid = str(uuid.uuid4())
+    ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{uid}{ext}"
+
+    # Save uploaded file
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # Output paths
+    vp8_output = f"/shared/vp8_{uid}.webm"
+    vp9_output = f"/shared/vp9_{uid}.webm"
+    h265_output = f"/shared/h265_{uid}.mp4"
+    av1_output = f"/shared/av1_{uid}.mkv"
+
+    # ffmpeg commands for each format
+    # VP8
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", input_path, "-c:v", "libvpx", vp8_output],
+        check=True
+    )
+
+    # VP9
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", input_path, "-c:v", "libvpx-vp9", vp9_output],
+        check=True
+    )
+
+    # H.265
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", input_path, "-c:v", "libx265", h265_output],
+        check=True
+    )
+
+    # AV1
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", input_path, "-c:v", "libaom-av1", av1_output],
+        check=True
+    )
+
+    os.remove(input_path)
+
+    return {
+        "message": "Video converted to all codecs successfully",
+        "vp8": vp8_output,
+        "vp9": vp9_output,
+        "h265": h265_output,
+        "av1": av1_output
+    }
+
+# Exercise 2 of practice 2 Endpoint - Encoding ladder
+
+# Reutilitzar 2 endpoints com a funcions internes
+def resize_video(input_path: str, width: int, height: int) -> str:
+    uid = str(uuid.uuid4())
+    output_path = f"/shared/ladder_{width}x{height}_{uid}.mp4"
+
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-vf", f"scale={width}:{height}",
+            "-c:v", "libx264",
+            output_path
+        ],
+        check=True
+    )
+
+    return output_path
+
+# Funció reutilitzada i convertida només a H.265
+
+def convert_to_h265(input_path: str, bitrate: str) -> str:
+    uid = str(uuid.uuid4())
+    output_path = f"/shared/ladder_{bitrate}_{uid}.mp4"
+
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-c:v", "libx265",
+            "-b:v", bitrate,
+            output_path
+        ],
+        check=True
+    )
+
+    return output_path
+
+# Endpoint que crida les dos funcions anteriors i fa el ladder
+
+@app.post("/video/encoding_ladder/")
+async def encoding_ladder(file: UploadFile = File(...)):
+
+    uid = str(uuid.uuid4())
+    ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{uid}{ext}"
+
+    # Save uploaded file
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # Our ladder will do 3 configurations: 1920x1080@4000k, 1280x720@2500k, 854x480@1000k
+    ladder_config = [
+        {"width": 1920, "height": 1080, "bitrate": "4000k"},
+        {"width": 1280, "height": 720,  "bitrate": "2500k"},
+        {"width": 854,  "height": 480,  "bitrate": "1000k"},
+    ]
+
+    outputs = []
+
+    for level in ladder_config:
+        # 1. Resize using internal function
+        resized_path = resize_video(
+            input_path,
+            level["width"],
+            level["height"]
+        )
+
+        # 2. Encode using internal function
+        encoded_path = convert_to_h265(
+            resized_path,
+            level["bitrate"]
+        )
+
+        outputs.append({
+            "resolution": f'{level["width"]}x{level["height"]}',
+            "bitrate": level["bitrate"],
+            "file": encoded_path
+        })
+
+        os.remove(resized_path)
+
+    os.remove(input_path)
+
+    return {
+        "message": "Encoding ladder created successfully",
+        "ladder": outputs
+    }
+
+
+
 
 
