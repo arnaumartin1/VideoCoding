@@ -19,6 +19,16 @@ class YUV(BaseModel):
     U: int = Body(..., ge=0, le=255)
     V: int = Body(..., ge=0, le=255)
 
+# Classes of Seminar 2:
+class VideoResolution(BaseModel):
+    video_filename: str = "big_buck_bunny.mp4"
+    width: int = Body(..., gt=0)
+    height: int = Body(..., gt=0)
+
+class ChromaSubsampling(BaseModel):
+    video_filename: str = "big_buck_bunny.mp4"
+    pixel_format: str = Body(...)
+
 # Service wrapper functions
 def rgb_to_yuv_service(R: int, G: int, B: int):
     return ColorTranslator.rgb_to_yuv(R, G, B)
@@ -91,54 +101,267 @@ async def resize_image(width: int, height: int, file: UploadFile = File(...)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# New endpoint: Convert video format using ffmpeg-python library
-@app.post("/video/convert/")
-async def convert_video(output_format: str, file: UploadFile = File(...)):
-    """Convert a video to a different format using ffmpeg-python library"""
-    valid_formats = ["mp4", "avi", "mkv", "webm", "mov"]
-    if output_format.lower() not in valid_formats:
-        raise HTTPException(status_code=400, detail=f"Output format must be one of: {valid_formats}")
     
-    try:
-        # Generate unique filenames
-        file_id = str(uuid.uuid4())
-        input_filename = f"input_{file_id}{os.path.splitext(file.filename)[1]}"
-        output_filename = f"converted_{file_id}.{output_format.lower()}"
-        
-        # Paths in shared volume (accessible by ffmpeg_tool container too)
-        shared_dir = "/shared"
-        input_path = os.path.join(shared_dir, input_filename)
-        output_path = os.path.join(shared_dir, output_filename)
-        
-        # Save uploaded file to shared volume
-        with open(input_path, "wb") as f:
-            f.write(await file.read())
-        
-        # Use ffmpeg-python to convert the video
-        (
-            ffmpeg
-            .input(input_path)
-            .output(output_path)
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
+
+# Exercise 1 of Seminar 2 Endpoint - Change video resolution
+
+@app.post("/video/resize/")
+async def resize_video(width: int,height: int,file: UploadFile = File(...)
+):
+    file_id = str(uuid.uuid4())
+    input_ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{file_id}{input_ext}"
+    output_filename = f"resized_{width}x{height}_{file_id}.mp4"
+    output_path = os.path.join("/shared", output_filename)
+
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    (
+        ffmpeg
+        .input(input_path)
+        .filter("scale", width, height)
+        .output(output_path, vcodec="libx264", acodec="aac")
+        .overwrite_output()
+        .run(capture_stdout=True, capture_stderr=True)
+    )
+
+    os.remove(input_path)
+
+    return {
+        "message": "Video resized successfully",
+        "output_file": output_filename,
+        "dimensions": {
+            "width": width,
+            "height": height
+        },
+        "saved_in": output_path
+    }
+
+# Exercise 2 of Seminar 2 Endpoint - Change chroma subsampling
+
+@app.post("/video/chroma_subsampling/")
+async def chroma_subsampling(pixel_format: str,file: UploadFile = File(...)
+):
+    pixel_format = pixel_format.lower()
+    valid_formats = ["yuv420p", "yuv422p", "yuv444p"]
+
+    if pixel_format not in valid_formats:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid pixel format. Use one of: {valid_formats}"
         )
-        
-        # Clean up input file
-        if os.path.exists(input_path):
-            os.remove(input_path)
-        
-        return {
-            "message": "Video converted successfully",
-            "output_file": output_filename,
-            "output_format": output_format.lower(),
-            "note": "File stored in shared volume, accessible by ffmpeg_tool container"
-        }
+
+    file_id = str(uuid.uuid4())
+    input_ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{file_id}{input_ext}"
+    output_filename = f"chroma_{pixel_format}_{file_id}.mp4"
+    output_path = os.path.join("/shared", output_filename)
+
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    (
+        ffmpeg
+        .input(input_path)
+        .output(
+            output_path,
+            vcodec="libx264",
+            acodec="aac",
+            pix_fmt=pixel_format
+        )
+        .overwrite_output()
+        .run(capture_stdout=True, capture_stderr=True)
+    )
+
+    os.remove(input_path)
+
+    return {
+        "message": "Chroma subsampling modified successfully",
+        "output_file": output_filename,
+        "new_pixel_format": pixel_format,
+        "saved_in": output_path
+    }
+
     
-    except ffmpeg.Error as e:
-        error_message = e.stderr.decode() if e.stderr else str(e)
-        raise HTTPException(status_code=500, detail=f"FFmpeg error: {error_message}")
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Exercise 3 of Seminar 2 Endpoint - Visualize coding info
+@app.post("/video/info/")
+async def video_info(file: UploadFile = File(...)):
+    file_id = str(uuid.uuid4())
+    input_path = f"input_{file_id}{os.path.splitext(file.filename)[1]}"
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # Read the video info using ffmpeg
+    probe = ffmpeg.probe(input_path)
+    format_info = probe['format']
+    streams_info = probe['streams']
+
+    video_info = {
+        "filename": file.filename,
+        "format_name": format_info["format_name"],
+        "duration_sec": float(format_info["duration"]),
+        "size_bytes": int(format_info["size"]),
+        "width": int(streams_info[0]["width"]),
+        "height": int(streams_info[0]["height"]),
+
+    }
+    os.remove(input_path)
+
+    return {"video_info": video_info}
+
+
+# Exercise 4 of Seminar 2 Endpoint - Create multitrack video
+  
+@app.post("/video/multitrack/")
+async def create_multitrack_video(file: UploadFile = File(...)):
+
+    file_id = str(uuid.uuid4())
+    input_ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{file_id}{input_ext}"
+    output_filename = f"multitrack_{file_id}.mp4"
+    output_path = os.path.join("/shared", output_filename)
+
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    cmd = [
+        'ffmpeg',
+        '-i', input_path,
+        '-t', '20',
+        '-map', '0:v:0',
+        '-map', '0:a:0',
+        '-map', '0:a:0',
+        '-map', '0:a:0',
+        '-c:v', 'libx264',
+
+        # Audio track 0: AAC mono
+        '-c:a:0', 'aac',
+        '-ac:a:0', '1',
+        '-b:a:0', '128k',
+
+        # Audio track 1: MP3 stereo
+        '-c:a:1', 'libmp3lame',
+        '-ac:a:1', '2',
+        '-b:a:1', '64k',
+
+        # Audio track 2: AC3
+        '-c:a:2', 'ac3',
+        '-b:a:2', '192k',
+
+        '-y',
+        output_path
+    ]
+
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+    os.remove(input_path)
+
+    return {
+        "message": "Multitrack video created successfully",
+        "output_file": output_filename,
+        "tracks": {
+            "video": "H.264 (20s)",
+            "audio_0": "AAC mono @ 128k",
+            "audio_1": "MP3 stereo @ 64k",
+            "audio_2": "AC3 @ 192k"
+        },
+        "saved_in": output_path
+    }
+
+
+# Exercise 5 of Seminar 2 Endpoint - Video streams info
+@app.post("/video/streams/")
+async def video_streams(file: UploadFile = File(...)):
+    file_id = str(uuid.uuid4())
+    input_path = f"input_{file_id}{os.path.splitext(file.filename)[1]}"
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # Read the video streams using ffmpeg
+    probe = ffmpeg.probe(input_path)
+    streams = probe.get('streams', [])
+    num_streams = len(streams)
+
+    os.remove(input_path)
+
+    return {"num_streams": num_streams}
+
+# Exercise 6 of Seminar 2 Endpoint - Video Macroblocks and Motion Vectors Visualization
+
+@app.post("/video/visualize_coding/")
+async def visualize_coding_info(file: UploadFile = File(...)):
+
+    file_id = str(uuid.uuid4())
+    input_ext = os.path.splitext(file.filename)[1]
+    input_path = f"input_{file_id}{input_ext}"
+    output_filename = f"codecview_{file_id}.mp4"
+    output_path = os.path.join("/shared", output_filename)
+
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # codecview filter
+    codecview_filter = "codecview=mv=pf+bf+bb:block=1"
+
+    (
+        ffmpeg
+        .input(input_path, flags2="export_mvs")
+        .output(
+            output_path,
+            vcodec="libx264",
+            vf=codecview_filter,
+            acodec="aac"
+        )
+        .overwrite_output()
+        .run(capture_stdout=True, capture_stderr=True)
+    )
+
+    os.remove(input_path)
+
+    return {
+        "message": "Video with coding info generated successfully",
+        "output_file": output_filename,
+        "filter_applied": codecview_filter,
+        "saved_in": output_path
+    }
+
+
+# Exercise 7 of Seminar 2 Endpoint - Video YUV Histogram Visualization
+@app.post("/video/yuv-histogram/")
+async def video_yuv_histogram(file: UploadFile = File(...)):
+
+    file_id = str(uuid.uuid4())
+    input_filename = f"input_{file_id}{os.path.splitext(file.filename)[1]}"
+    output_filename = f"yuv_hist_{file_id}.mp4"
+
+    shared_dir = "/shared"
+    input_path = os.path.join(shared_dir, input_filename)
+    output_path = os.path.join(shared_dir, output_filename)
+
+    # Save video
+    with open(input_path, "wb") as f:
+        f.write(await file.read())
+
+    # Direct FFmpeg command (simple and safe)
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-vf",
+        "format=yuv420p,extractplanes=y+u+v[y][u][v];"
+        "[y]histogram[yh];"
+        "[u]histogram[uh];"
+        "[v]histogram[vh];"
+        "[yh][uh][vh]vstack=3",
+        output_path
+    ]
+
+    subprocess.run(cmd)
+
+    os.remove(input_path)
+
+    return FileResponse(output_path, media_type="video/mp4", filename=output_filename)
+
+
+
+
