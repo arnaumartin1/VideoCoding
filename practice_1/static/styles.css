@@ -1,0 +1,206 @@
+/* styles.css */
+
+/* Variables para fácil edición */
+:root {
+    --primary-color: #00bcd4; /* Cian Vibrante (Acento) */
+    --secondary-color: #4CAF50; /* Verde Éxito */
+    --background-dark: #1e1e2f; /* Fondo Oscuro Profundo */
+    --card-background: #27293d; /* Fondo de Tarjeta Ligeramente más Claro */
+    --text-light: #f0f0f0; /* Texto Claro */
+    --text-muted: #b0b0b0; /* Texto Secundario */
+    --error-color: #ff5722; /* Naranja/Rojo Error */
+    --border-radius: 8px;
+    --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-dark);
+    color: var(--text-light);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* --- Encabezado --- */
+header {
+    text-align: center;
+    padding: 30px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--card-background);
+}
+
+h1 {
+    font-size: 2.8em;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+}
+
+h2 {
+    font-size: 1.8em;
+    margin-top: 30px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--text-light);
+}
+
+h3 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+/* --- Estructura de Módulos (Grid) --- */
+.module-grid {
+    display: grid;
+    /* Ajustado para 3 columnas en desktop */
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+    gap: 30px;
+    padding-top: 20px;
+}
+
+.card {
+    background-color: var(--card-background);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(0, 188, 212, 0.2);
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Efecto 3D sutil */
+    box-shadow: 0 8px 20px rgba(0, 188, 212, 0.2);
+}
+
+/* Sección de color RGB/YUV */
+.color-module {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* --- Botones y Formularios --- */
+label {
+    display: block;
+    margin-top: 15px;
+    color: var(--text-light);
+    font-weight: bold;
+}
+
+input[type="file"], input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #3c3f58;
+    background-color: #33364b;
+    color: var(--text-light);
+    border-radius: 4px;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-group > div {
+    flex: 1;
+}
+
+.submit-btn {
+    background-color: var(--primary-color);
+    color: var(--background-dark);
+    padding: 12px 25px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: #3fe9ff; /* Brillo al pasar el mouse */
+    box-shadow: 0 0 15px var(--primary-color); /* Efecto de iluminación */
+}
+
+.submit-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+    color: var(--text-muted);
+}
+
+/* --- Estado y Salida --- */
+.status-box {
+    min-height: 40px;
+}
+
+.status {
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-top: 15px;
+    font-weight: bold;
+    border: 1px solid;
+    font-size: 0.9em;
+}
+
+.status-loading {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border-color: #ffc107;
+}
+
+.status-success {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.status-error {
+    background-color: rgba(255, 87, 34, 0.1);
+    color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+.output-links {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.output-links h4 {
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.output-links a, .output-links p {
+    color: var(--text-light);
+    text-decoration: none;
+    display: block;
+    margin-top: 5px;
+    font-size: 0.95em;
+    transition: color 0.2s;
+}
+
+.output-links a:hover {
+    color: #3fe9ff;
+    text-decoration: underline;
+}

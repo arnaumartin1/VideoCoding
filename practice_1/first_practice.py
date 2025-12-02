@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Body, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi import Request
+from fastapi.templating import Jinja2Templates
 from services import ColorTranslator
 import subprocess
 import tempfile
@@ -38,9 +41,12 @@ def yuv_to_rgb_service(Y: int, U: int, V: int):
 
 app = FastAPI(title="FastAPI for Practice 1")
 
-@app.get("/")
-def read_root(): # Endpoint to check if the API is running
-    return {"message": "FastAPI for Practice 1 running successfully!"}
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="static")
+
+@app.get("/", include_in_schema=False)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # Exercise 2 of Seminar 1 Endpoint
 @app.post("/convert/rgb_to_yuv/")
@@ -422,7 +428,7 @@ async def convert_codecs(file: UploadFile = File(...)):
 
 # Exercise 2 of Practice 2 Endpoint - Encoding ladder
 
-# Reutilitzar 2 endpoints com a funcions internes
+# Reused 2 endpoints as an interal functions
 def resize_video(input_path: str, width: int, height: int) -> str:
     uid = str(uuid.uuid4())
     output_path = f"/shared/ladder_{width}x{height}_{uid}.mp4"

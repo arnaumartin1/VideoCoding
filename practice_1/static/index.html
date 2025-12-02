@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video API - Final</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Video API Explorer</h1>
+            <p style="color: var(--text-muted);">Professional interface for all encoding and colorimetry tools.</p>
+        </header>
+
+        <h2>1. Color Conversion Tools</h2>
+        <div class="color-module module-grid">
+            
+            <!-- CARD 1: RGB to YUV -->
+            <div class="card" data-endpoint="/convert/rgb_to_yuv/" data-type="json">
+                <h3>1.1 RGB to YUV</h3>
+                <p style="color: var(--text-muted);">Convert RGB color space components to YUV.</p>
+                <form class="api-form">
+                    <div class="input-group">
+                        <div><label for="rgb-R">R (0-255)</label><input type="number" name="R" id="rgb-R" min="0" max="255" value="255" required></div>
+                        <div><label for="rgb-G">G (0-255)</label><input type="number" name="G" id="rgb-G" min="0" max="255" value="0" required></div>
+                        <div><label for="rgb-B">B (0-255)</label><input type="number" name="B" id="rgb-B" min="0" max="255" value="0" required></div>
+                    </div>
+                    <button type="submit" class="submit-btn">Convert to YUV</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+            <!-- CARD 2: YUV to RGB -->
+            <div class="card" data-endpoint="/convert/yuv_to_rgb/" data-type="json">
+                <h3>1.2 YUV to RGB</h3>
+                <p style="color: var(--text-muted);">Convert YUV color space components to RGB.</p>
+                <form class="api-form">
+                    <div class="input-group">
+                        <div><label for="yuv-Y">Y (0-255)</label><input type="number" name="Y" id="yuv-Y" min="0" max="255" value="76" required></div>
+                        <div><label for="yuv-U">U (0-255)</label><input type="number" name="U" id="yuv-U" min="0" max="255" value="84" required></div>
+                        <div><label for="yuv-V">V (0-255)</label><input type="number" name="V" id="yuv-V" min="0" max="255" value="255" required></div>
+                    </div>
+                    <button type="submit" class="submit-btn">Convert to RGB</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+        </div> <!-- End of color-module -->
+
+        <h2>2. Image and Video Editing Tools</h2>
+        <div class="module-grid">
+            
+            <!-- CARD 3: Resize Image -->
+            <div class="card" data-endpoint="/image/resize/" data-type="file-query">
+                <h3>2.1 Resize Image</h3>
+                <p style="color: var(--text-muted);">Use `ffmpeg-python` to change the resolution of an image.</p>
+                <form class="api-form">
+                    <label for="file-img-resize">Select Image:</label>
+                    <input type="file" name="file" id="file-img-resize" accept="image/*" required>
+                    <div class="input-group">
+                        <div><label for="img-width">Width (px)</label><input type="number" name="width" id="img-width" value="400" required></div>
+                        <div><label for="img-height">Height (px)</label><input type="number" name="height" id="img-height" value="300" required></div>
+                    </div>
+                    <button type="submit" class="submit-btn">Resize</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+            
+            <!-- CARD 4: Resize Video -->
+            <div class="card" data-endpoint="/video/resize/" data-type="file-query">
+                <h3>2.2 Resize Video</h3>
+                <p style="color: var(--text-muted);">Adjust the resolution of a video with H.264/AAC.</p>
+                <form class="api-form">
+                    <label for="file-vid-resize">Select Video:</label>
+                    <input type="file" name="file" id="file-vid-resize" accept="video/*" required>
+                    <div class="input-group">
+                        <div><label for="vid-width">Width (px)</label><input type="number" name="width" id="vid-width" value="1280" required></div>
+                        <div><label for="vid-height">Height (px)</label><input type="number" name="height" id="vid-height" value="720" required></div>
+                    </div>
+                    <button type="submit" class="submit-btn">Resize Video</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+            <!-- CARD 5: Chroma Subsampling -->
+            <div class="card" data-endpoint="/video/chroma_subsampling/" data-type="file-query">
+                <h3>2.3 Chroma Subsampling</h3>
+                <p style="color: var(--text-muted);">Apply a pixel format (e.g., yuv422p) to the video.</p>
+                <form class="api-form">
+                    <label for="file-chroma">Select Video:</label>
+                    <input type="file" name="file" id="file-chroma" accept="video/*" required>
+                    <label for="pixel-format">Pixel Format (pix_fmt):</label>
+                    <input type="text" name="pixel_format" id="pixel-format" value="yuv422p" required>
+                    <button type="submit" class="submit-btn">Apply Chroma</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+            <!-- CARD 6: Multitrack Video -->
+            <div class="card" data-endpoint="/video/multitrack/" data-type="file">
+                <h3>2.4 Video Multi-Track Audio</h3>
+                <p style="color: var(--text-muted);">Create a 20s video with 3 audio tracks (AAC, MP3, AC3).</p>
+                <form class="api-form">
+                    <label for="file-multitrack">Select Video (with audio):</label>
+                    <input type="file" name="file" id="file-multitrack" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Generate Multi-Track</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+        </div> <!-- End of module-grid 2 -->
+
+        <h2>3. Information and Visualization Tools</h2>
+        <div class="module-grid">
+            
+            <!-- CARD 7: Video Info -->
+            <div class="card" data-endpoint="/video/info/" data-type="file">
+                <h3>3.1 Get Metadata (ffprobe)</h3>
+                <p style="color: var(--text-muted);">Extract format, duration, resolution, and file size.</p>
+                <form class="api-form">
+                    <label for="file-info">Select Video:</label>
+                    <input type="file" name="file" id="file-info" accept="video/*" required>
+                    <button type="submit" class="submit-btn">View Info</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+            <!-- CARD 8: Video Streams Count -->
+            <div class="card" data-endpoint="/video/streams/" data-type="file">
+                <h3>3.2 Count Streams</h3>
+                <p style="color: var(--text-muted);">Count the total number of streams (video, audio, subtitles, etc.).</p>
+                <form class="api-form">
+                    <label for="file-streams">Select Video:</label>
+                    <input type="file" name="file" id="file-streams" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Count Streams</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+            
+            <!-- CARD 9: Video Macroblocks Visualization -->
+            <div class="card" data-endpoint="/video/visualize_coding/" data-type="file">
+                <h3>3.3 Coding Visualization</h3>
+                <p style="color: var(--text-muted);">Shows Motion Vectors and Macroblocks (codecview).</p>
+                <form class="api-form">
+                    <label for="file-visualize">Select Video:</label>
+                    <input type="file" name="file" id="file-visualize" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Generate Visualization</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+            <!-- CARD 10: YUV Histogram Visualization -->
+            <div class="card" data-endpoint="/video/yuv-histogram/" data-type="file">
+                <h3>3.4 YUV Histogram</h3>
+                <p style="color: var(--text-muted);">Generates a video with the visualization of the Y, U, and V planes.</p>
+                <form class="api-form">
+                    <label for="file-histogram">Select Video:</label>
+                    <input type="file" name="file" id="file-histogram" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Generate Histogram</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+
+        </div> <!-- End of module-grid 3 -->
+
+        <h2>4. Advanced Encoding Tools</h2>
+        <div class="module-grid">
+
+             <!-- CARD 11: 4 Simultaneous Codecs (Exercise 1) -->
+            <div class="card" data-endpoint="/video/convert_video_4_formats/" data-type="file">
+                <h3>4.1 Multicodec (VP8, VP9, H.265, AV1)</h3>
+                <p style="color: var(--text-muted);">Converts the video to 4 different codecs sequentially. (May take a long time!)</p>
+                <form class="api-form">
+                    <label for="file-codecs">Select Video:</label>
+                    <input type="file" name="file" id="file-codecs" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Convert 4 Codecs</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+            
+            <!-- CARD 12: Encoding Ladder (Exercise 2) -->
+            <div class="card" data-endpoint="/video/encoding_ladder/" data-type="file">
+                <h3>4.2 Encoding Ladder (H.265)</h3>
+                <p style="color: var(--text-muted);">Creates 3 versions of the video (1080p, 720p, 480p) with defined bitrates.</p>
+                <form class="api-form">
+                    <label for="file-ladder">Select Video:</label>
+                    <input type="file" name="file" id="file-ladder" accept="video/*" required>
+                    <button type="submit" class="submit-btn">Generate Ladder</button>
+                    <div class="status-box"></div>
+                    <div class="output-links"></div>
+                </form>
+            </div>
+        </div>
+
+
+    </div> <!-- End of container -->
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        document.querySelectorAll('.api-form').forEach(form => {
+            form.addEventListener('submit', handleFormSubmit);
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const card = form.closest('.card');
+            const endpoint = card.getAttribute('data-endpoint');
+            const dataType = card.getAttribute('data-type') || 'file'; // file, json, or file-query
+            const statusBox = card.querySelector('.status-box');
+            const outputDiv = card.querySelector('.output-links');
+            const submitBtn = form.querySelector('.submit-btn');
+
+            statusBox.className = 'status-box status-loading status';
+            statusBox.innerHTML = '⏳ Preparing and sending data...';
+            outputDiv.innerHTML = '';
+            submitBtn.disabled = true;
+
+            let method = 'POST';
+            let headers = {};
+            let body;
+            let url = `${API_BASE_URL}${endpoint}`;
+            
+            // 1. Handle different types of request bodies
+            if (dataType === 'json') {
+                // Color Conversion: RGB/YUV
+                headers['Content-Type'] = 'application/json';
+                const jsonPayload = {};
+                for (const input of form.querySelectorAll('input[name]')) {
+                    jsonPayload[input.name] = parseInt(input.value, 10);
+                }
+                body = JSON.stringify(jsonPayload);
+                statusBox.innerHTML = `⏳ Sending JSON to ${endpoint}...`;
+
+            } else if (dataType === 'file' || dataType === 'file-query') {
+                // File (only body) or File + Query Parameters
+                const formData = new FormData(form);
+                const queryParams = [];
+
+                if (dataType === 'file-query') {
+                    // Move simple parameters (width, height, pixel_format) to the URL
+                    for (const [key, value] of form.elements) {
+                        if (value.type !== 'file' && value.name) {
+                            if (value.value) {
+                                queryParams.push(`${key}=${encodeURIComponent(value.value)}`);
+                                formData.delete(key); 
+                            }
+                        }
+                    }
+                    if (queryParams.length > 0) {
+                         url = `${url}?${queryParams.join('&')}`;
+                    }
+                }
+                
+                body = formData; // FormData is sent without Content-Type header (the browser handles it)
+                statusBox.innerHTML = `⏳ Uploading file and starting encoding on ${endpoint.split('/').pop()}...`;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: headers,
+                    body: body
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusBox.className = 'status-box status-success status';
+                    statusBox.innerHTML = `✅ ${data.message || 'Processing completed successfully!'}`;
+                    
+                    // --- Dynamic output generation ---
+                    let htmlOutput = '<h4>Results:</h4>';
+
+                    if (dataType === 'json') {
+                         // Show JSON response for RGB/YUV
+                         htmlOutput += `<p>Output: ${JSON.stringify(data, null, 2)}</p>`;
+                    } else if (endpoint.includes('/video/info')) {
+                        // Show Video Info metadata (3.1)
+                        const info = data.video_info;
+                        htmlOutput += `
+                            <ul>
+                                <li>**Format:** ${info.format_name || 'N/A'}</li>
+                                <li>**Duration:** ${info.duration_sec.toFixed(2)} seconds</li>
+                                <li>**Resolution:** ${info.width}x${info.height}</li>
+                                <li>**Size:** ${(info.size_bytes / (1024 * 1024)).toFixed(2)} MB</li>
+                            </ul>
+                        `;
+                    } else if (endpoint.includes('/video/streams')) {
+                         // Show Streams count (3.2)
+                         htmlOutput += `<p>Streams detected: <strong>${data.num_streams}</strong></p>`;
+                    } else if (endpoint.includes('/encoding_ladder')) {
+                        // Show encoding ladder (4.2)
+                        data.ladder.forEach(item => {
+                            // Use the end of the path for the download name
+                            const filename = item.file.split('/').pop(); 
+                            htmlOutput += `<p>Resolution ${item.resolution} (${item.bitrate}): <a href="${item.file}" target="_blank">Download ${filename}</a></p>`;
+                        });
+                    } else if (endpoint.includes('/convert_video_4_formats')) {
+                        // Show the 4 codecs (4.1)
+                        for (const key in data) {
+                            if (key !== 'message') {
+                                const filename = data[key].split('/').pop();
+                                htmlOutput += `<p>${key.toUpperCase()}: <a href="${data[key]}" target="_blank">Download ${filename}</a></p>`;
+                            }
+                        }
+                    } else if (data.saved_in) {
+                         // General case for single files (Resize, Chroma, Multitrack, Visualize)
+                         const filename = data.output_file || data.saved_in.split('/').pop();
+                         htmlOutput += `<a href="${data.saved_in}" target="_blank">Download File: ${filename}</a>`;
+                    }
+                    
+                    outputDiv.innerHTML = htmlOutput;
+                    
+                } else {
+                    statusBox.className = 'status-box status-error status';
+                    statusBox.innerHTML = `❌ API Error (${response.status}): ${data.detail || 'Unknown error'}`;
+                }
+
+            } catch (error) {
+                statusBox.className = 'status-box status-error status';
+                statusBox.innerHTML = `❌ Network or server error: ${error.message}`;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

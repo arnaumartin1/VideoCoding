@@ -11,3 +11,6 @@ PyWavelets==1.9.0
 
 # FFmpeg Python wrapper (optional, for local processing)
 ffmpeg-python==0.2.0
+
+# Jinja2 for templating
+Jinja2==3.1.4
