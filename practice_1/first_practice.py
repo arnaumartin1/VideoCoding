@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from services import ColorTranslator
 import subprocess
 import tempfile
@@ -43,6 +44,14 @@ app = FastAPI(title="FastAPI for Practice 1")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static")
+
+# Create shared directory if it doesn't exist to save files
+SHARED_DIR = "/shared"
+if not os.path.exists(SHARED_DIR):
+    os.makedirs(SHARED_DIR)
+
+# Mount shared directory to serve files
+app.mount("/files", StaticFiles(directory=SHARED_DIR), name="files")
 
 @app.get("/", include_in_schema=False)
 async def read_root(request: Request):
@@ -94,9 +103,12 @@ async def resize_image(width: int, height: int, file: UploadFile = File(...)):
         if os.path.exists(input_path):
             os.remove(input_path)
         
+        download_url = f"/files/{output_filename}" 
+
         return {
             "message": "Image resized successfully",
             "output_file": output_filename,
+            "saved_in": download_url,
             "dimensions": {"width": width, "height": height},
             "note": "File stored in shared volume, accessible by ffmpeg_tool container"
         }
@@ -134,6 +146,8 @@ async def resize_video(width: int,height: int,file: UploadFile = File(...)
 
     os.remove(input_path)
 
+    download_url = f"/files/{output_filename}"
+
     return {
         "message": "Video resized successfully",
         "output_file": output_filename,
@@ -141,7 +155,7 @@ async def resize_video(width: int,height: int,file: UploadFile = File(...)
             "width": width,
             "height": height
         },
-        "saved_in": output_path
+        "saved_in": download_url
     }
 
 # Exercise 2 of Seminar 2 Endpoint - Change chroma subsampling
@@ -182,11 +196,13 @@ async def chroma_subsampling(pixel_format: str,file: UploadFile = File(...)
 
     os.remove(input_path)
 
+    download_url = f"/files/{output_filename}"
+
     return {
         "message": "Chroma subsampling modified successfully",
         "output_file": output_filename,
         "new_pixel_format": pixel_format,
-        "saved_in": output_path
+        "saved_in": download_url
     }
 
     
@@ -263,6 +279,8 @@ async def create_multitrack_video(file: UploadFile = File(...)):
 
     os.remove(input_path)
 
+    download_url = f"/files/{output_filename}"
+
     return {
         "message": "Multitrack video created successfully",
         "output_file": output_filename,
@@ -272,7 +290,7 @@ async def create_multitrack_video(file: UploadFile = File(...)):
             "audio_1": "MP3 stereo @ 64k",
             "audio_2": "AC3 @ 192k"
         },
-        "saved_in": output_path
+        "saved_in": download_url
     }
 
 
@@ -326,11 +344,13 @@ async def visualize_coding_info(file: UploadFile = File(...)):
 
     os.remove(input_path)
 
+    download_url = f"/files/{output_filename}"
+
     return {
         "message": "Video with coding info generated successfully",
         "output_file": output_filename,
         "filter_applied": codecview_filter,
-        "saved_in": output_path
+        "saved_in": download_url
     }
 
 

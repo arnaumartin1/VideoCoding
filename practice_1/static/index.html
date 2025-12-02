@@ -252,11 +252,17 @@
 
                 if (dataType === 'file-query') {
                     // Move simple parameters (width, height, pixel_format) to the URL
-                    for (const [key, value] of form.elements) {
-                        if (value.type !== 'file' && value.name) {
-                            if (value.value) {
-                                queryParams.push(`${key}=${encodeURIComponent(value.value)}`);
-                                formData.delete(key); 
+                    for (const element of form.elements) {
+                        if (element.type !== 'file' && element.name && element.value) {
+                            const key = element.name;
+                            const value = element.value;
+
+                            // Append to query parameters
+                            queryParams.push(`${key}=${encodeURIComponent(value)}`);
+
+                            // Remove from FormData
+                            if (formData.has(key)) {
+                                formData.delete(key);  
                             }
                         }
                     }
@@ -320,7 +326,7 @@
                     } else if (data.saved_in) {
                          // General case for single files (Resize, Chroma, Multitrack, Visualize)
                          const filename = data.output_file || data.saved_in.split('/').pop();
-                         htmlOutput += `<a href="${data.saved_in}" target="_blank">Download File: ${filename}</a>`;
+                         htmlOutput += `<a href="${data.saved_in}" download="${filename}" target="_blank">Download File: ${filename}</a>`;
                     }
                     
                     outputDiv.innerHTML = htmlOutput;
